@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shrimp Crypto Tycoon — Fullscreen & Admin Clear</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #f7efe6, #ffe8cc);
+      overflow: hidden; /* global scroll yok */
+    }
+
+    /* Tam ekran tek sayfa */
+    #gameContainer {
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      background: #fff7e6;
+      border: 3px solid #d94f04;
+      border-radius: 14px;
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto 1fr auto; /* header, content, footer */
+      gap: 10px;
+      padding: 0;
+    }
+
+    /* Watermark */
+    #watermark {
+      position: absolute;
+      top: 8px;
+      left: 12px;
+      font-size: clamp(12px, 1.6vw, 18px);
+      font-weight: 700;
+      color: #333;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      z-index: 5;
+      opacity: .85;
+      user-select: none;
+      cursor: default;
+    }
+
+    h1 {
+      margin: 0;
+      padding: 10px 0;
+      text-align: center;
+      color: #d94f04;
+      grid-column: 1 / span 2;
+      background: #fff0dc;
+      border-bottom: 2px solid #d94f04;
+      border-radius: 10px 10px 0 0;
+      font-size: clamp(18px, 3vw, 28px);
+    }
+
+    /* Sol panel */
+    #leftPane {
+      padding: clamp(8px, 2vw, 14px);
+      overflow: hidden; /* dışa taşma yok */
+      display: grid;
+      grid-auto-rows: min-content;
+      align-content: start;
+      row-gap: clamp(6px, 1.2vw, 12px);
+    }
+    #tokenDisplay {
+      font-size: clamp(18px, 2.4vw, 26px);
+      font-weight: bold;
+      text-align: center;
+    }
+    #mineButton {
+      padding: clamp(12px, 2.2vw, 18px) clamp(16px, 3vw, 28px);
+      font-size: clamp(14px, 2vw, 18px);
+      background: #ff8c42;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      width: max(180px, 60%);
+      justify-self: center;
+    }
+    #mineButton:active { transform: translateY(1px); }
+    #mineButton:hover { background: #d96b0b; }
+    .upgrade {
+      margin: 0 auto;
+      padding: clamp(8px, 1.6vw, 12px);
+      background: #fff3e0;
+      border: 2px solid #d94f04;
+      border-radius: 10px;
+      width: 92%;
+    }
+    .upgrade h3 { margin: 4px 0; font-size: clamp(14px, 2vw, 18px); }
+    .upgrade p { margin: 4px 0; font-size: clamp(12px, 1.8vw, 16px); }
+    .upgrade button {
+      margin-top: 6px;
+      padding: clamp(6px, 1.6vw, 10px) clamp(10px, 2vw, 12px);
+      background: #d94f04;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: clamp(12px, 1.8vw, 16px);
+    }
+    .upgrade button:hover { background: #b44d00; }
+
+    /* Sağ panel */
+    #rightPane {
+      padding: clamp(8px, 2vw, 14px);
+      border-left: 2px dashed #f0b37a;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      row-gap: 8px;
+      overflow: hidden; /* panel dışına taşma yok */
+    }
+    #leaderboard {
+      background: #fff3e0;
+      border: 2px solid #d94f04;
+      border-radius: 10px;
+      padding: 10px;
+      height: 100%;       /* panelde mevcut alanın tamamı */
+      overflow: auto;     /* iç scroll */
+      min-height: 200px;
+    }
+    #leaderboard h2 {
+      margin: 0;
+      color: #d94f04;
+      text-align: center;
+      font-size: clamp(14px, 2.2vw, 20px);
+    }
+    table {
+      width: 100%;
+      margin-top: 10px;
+      border-collapse: collapse;
+      font-size: clamp(11px, 1.6vw, 14px);
+    }
+    th, td {
+      padding: 6px;
+      border-bottom: 1px solid #ccc;
+      text-align: center;
+      white-space: nowrap;
+    }
+    #nameRow {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: center;
+    }
+    #playerName {
+      flex: 1;
+      min-width: 0;
+      padding: 8px;
+      border: 1px solid #bbb;
+      border-radius: 8px;
+      font-size: clamp(12px, 1.8vw, 16px);
+    }
+    #nameRow button {
+      padding: 8px 10px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #d94f04;
+      color: #fff;
+      font-size: clamp(12px, 1.8vw, 16px);
+    }
+    #nameRow button:hover { background:#b44d00; }
+
+    #endScreen {
+      background: #ffe0b2;
+      border: 3px solid #d94f04;
+      border-radius: 12px;
+      padding: 12px;
+      display: none;
+      text-align: center;
+    }
+    #endScreen h3 { margin: 6px 0 4px 0; color:#d94f04; }
+    #finalScore, #finalRole { font-size: clamp(14px, 2vw, 18px); }
+
+    /* Alt bilgi */
+    #footerNote {
+      text-align:center; font-size: clamp(10px, 1.6vw, 12px); color:#7a4a22; padding-bottom:6px;
+      grid-column: 1 / span 2;
+    }
+
+    /* Mascot block */
+    #mascotWrap {
+      width: 90%;
+      margin: 6px auto 10px auto;
+      background: #fff;
+      border: 2px solid #d94f04;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+    #mascot {
+      width: clamp(56px, 6vw, 72px);
+      height: clamp(56px, 6vw, 72px);
+      object-fit: contain;
+      border-radius: 10px;
+      background: #fff7e6;
+      border: 1px solid #f1c08b;
+    }
+    #mascotBadge {
+      font-weight: 700;
+      color: #b44d00;
+      font-size: clamp(12px, 2vw, 16px);
+      text-align: left;
+    }
+
+    /* Gizli admin butonu */
+    #btnAdminClear {
+      display: none; /* sadece admin açınca görünsün */
+      background: #8b0000 !important;
+    }
+
+    /* Küçük ekranlarda tek sütuna düş */
+    @media (max-width: 900px) {
+      #gameContainer {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto 1fr auto; /* header, left, right, footer */
+      }
+      #rightPane { border-left: none; border-top: 2px dashed #f0b37a; }
+      #leaderboard { min-height: 180px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <div id="watermark" title="Admin giriş için çift tıkla">@0xdrkripto</div>
+    <h1>Shrimp Crypto Tycoon</h1>
+
+    <section id="leftPane">
+      <div id="mascotWrap">
+        <img id="mascot" src="shrimp.png" alt="Shrimp Trader Mascot" />
+        <div id="mascotBadge">Shrimp Crypto Trader</div>
+      </div>
+
+      <div id="tokenDisplay">Shrimp Tokens: 0</div>
+      <button id="mineButton">Mine Shrimp Token (+10)</button>
+
+      <div class="upgrade">
+        <h3>Shrimp Rig (Auto Miner)</h3>
+        <p>Generates <b>2</b> tokens per second (each).</p>
+        <p>Cost: <span id="rigCost">50</span> Tokens</p>
+        <button id="btnRig">Buy Rig</button>
+      </div>
+
+      <div class="upgrade">
+        <h3>Staking Pool</h3>
+        <p>Earns <b>5</b> tokens per second (each).</p>
+        <p>Cost: <span id="stakeCost">200</span> Tokens</p>
+        <button id="btnStake">Buy Staking Pool</button>
+      </div>
+
+      <div class="upgrade">
+        <h3>DeFi Farming</h3>
+        <p>Earns <b>20</b> tokens per second (each).</p>
+        <p>Cost: <span id="farmCost">1000</span> Tokens</p>
+        <button id="btnFarm">Buy Farm</button>
+      </div>
+    </section>
+
+    <section id="rightPane">
+      <div id="leaderboard">
+        <h2>🏆 Leaderboard (Full List)</h2>
+        <table id="scoreTable">
+          <tr><th>Rank</th><th>Player</th><th>Score</th><th>Role</th></tr>
+        </table>
+      </div>
+
+      <div id="nameRow">
+        <input type="text" id="playerName" placeholder="Your Name" />
+        <button id="btnEnd">End Game</button>
+        <button id="btnSave">Save Score</button>
+        <button id="btnRestart">Play Again</button>
+        <button id="btnAdminClear" title="Admin: Clear Leaderboard">Clear Leaderboard</button>
+      </div>
+
+      <div id="endScreen">
+        <h3>🍤 Game Over</h3>
+        <div id="finalScore"></div>
+        <div id="finalRole"></div>
+      </div>
+    </section>
+
+    <div id="footerNote">Tip: Save Score to appear on the full leaderboard.</div>
+  </div>
+
+  <script>
+    // --- Admin gizleme/açma mekanizması ---
+    // Not: Bu istemci tarafı güvenliktir; tam güvenlik sağlamaz. Yine de "sadece sen" erişebilesin diye
+    // gizli PIN ile buton görünür oluyor.
+    const ADMIN_PIN = "shrimp-king-042"; // İstersen değiştir
+    const ADMIN_FLAG = "shrimpAdminUnlocked";
+
+    function tryAdminUnlock() {
+      const pin = prompt("Admin PIN:");
+      if (!pin) return;
+      if (pin === ADMIN_PIN) {
+        sessionStorage.setItem(ADMIN_FLAG, "1");
+        document.getElementById("btnAdminClear").style.display = "inline-block";
+        alert("Admin mod aktif.");
+      } else {
+        alert("Yanlış PIN.");
+      }
+    }
+
+    // Watermark'a çift tık veya Ctrl+Alt+K ile admin girişi
+    document.getElementById("watermark").addEventListener("dblclick", tryAdminUnlock);
+    document.addEventListener("keydown", (e) => {
+      if (e.ctrlKey && e.altKey && (e.key.toLowerCase() === "k")) {
+        tryAdminUnlock();
+      }
+    });
+
+    // Sayfa yenilenince admin açık mı?
+    if (sessionStorage.getItem(ADMIN_FLAG) === "1") {
+      document.getElementById("btnAdminClear").style.display = "inline-block";
+    }
+
+    // --- Ekonomi ayarları ---
+    const CLICK_GAIN = 10;  // tık başına
+    const RIG_RATE = 2;     // tokens/s (her rig)
+    const STAKE_RATE = 5;   // tokens/s (her stake)
+    const FARM_RATE = 20;   // tokens/s (her farm)
+
+    // --- State ---
+    let tokens = 0;
+    let rigs = 0, stakes = 0, farms = 0;
+    let rigCost = 50, stakeCost = 200, farmCost = 1000;
+    let running = true;
+
+    // --- Helpers ---
+    const el = id => document.getElementById(id);
+    function getRole(score) {
+      if (score >= 10000) return "🐋 Crypto Whale Lord";
+      if (score >= 2000) return "🐡 Pufferfish Whale";
+      if (score >= 500) return "🐙 Octopus Trader";
+      if (score >= 100) return "🦞 Crab Investor";
+      return "🦐 Shrimp Starter";
+    }
+    function getRankTitle(rank) {
+      switch(rank) {
+        case 1: return "🥇 Crypto Shrimp King 👑";
+        case 2: return "🥈 DeFi Crab Master 🦞";
+        case 3: return "🥉 Octopus Trader Pro 🐙";
+        case 4: return "Pufferfish Hodler 🐡";
+        case 5: return "Mini Whale Rookie 🐋";
+        default: return String(rank);
+      }
+    }
+
+    // --- UI update ---
+    function updateDisplay() {
+      el("tokenDisplay").innerText = "Shrimp Tokens: " + Math.floor(tokens);
+      el("rigCost").innerText = rigCost;
+      el("stakeCost").innerText = stakeCost;
+      el("farmCost").innerText = farmCost;
+    }
+
+    // --- Purchases & mining ---
+    el("mineButton").addEventListener("click", () => { tokens += CLICK_GAIN; updateDisplay(); });
+    el("btnRig").addEventListener("click", () => {
+      if (tokens >= rigCost) { tokens -= rigCost; rigs++; rigCost = Math.floor(rigCost * 1.5); updateDisplay(); }
+    });
+    el("btnStake").addEventListener("click", () => {
+      if (tokens >= stakeCost) { tokens -= stakeCost; stakes++; stakeCost = Math.floor(stakeCost * 1.8); updateDisplay(); }
+    });
+    el("btnFarm").addEventListener("click", () => {
+      if (tokens >= farmCost) { tokens -= farmCost; farms++; farmCost = Math.floor(farmCost * 2); updateDisplay(); }
+    });
+
+    // --- Tek oyun döngüsü ---
+    let last = performance.now();
+    function tick(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      if (running) {
+        const income = rigs * RIG_RATE + stakes * STAKE_RATE + farms * FARM_RATE;
+        tokens += income * dt;
+        updateDisplay();
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    // --- End / Save / Restart ---
+    el("btnEnd").addEventListener("click", () => {
+      running = false;
+      el("finalScore").innerText = "Final Score: " + Math.floor(tokens);
+      el("finalRole").innerText = "Your Role: " + getRole(tokens);
+      el("endScreen").style.display = "block";
+    });
+
+    function renderLeaderboard() {
+      const scores = JSON.parse(localStorage.getItem("shrimpScores")) || [];
+      const table = el("scoreTable");
+      table.innerHTML = "<tr><th>Rank</th><th>Player</th><th>Score</th><th>Role</th></tr>";
+      scores.forEach((entry, i) => {
+        const row = table.insertRow();
+        row.insertCell(0).innerText = getRankTitle(i + 1);
+        row.insertCell(1).innerText = entry.name;
+        row.insertCell(2).innerText = entry.score;
+        row.insertCell(3).innerText = getRole(entry.score);
+      });
+    }
+
+    el("btnSave").addEventListener("click", () => {
+      const name = el("playerName").value || "Anon";
+      const scores = JSON.parse(localStorage.getItem("shrimpScores")) || [];
+      scores.push({ name, score: Math.floor(tokens) });
+      scores.sort((a,b) => b.score - a.score);
+      localStorage.setItem("shrimpScores", JSON.stringify(scores));
+      renderLeaderboard();
+    });
+
+    function resetState() {
+      tokens = 0; rigs = 0; stakes = 0; farms = 0;
+      rigCost = 50; stakeCost = 200; farmCost = 1000;
+      running = true;
+      el("endScreen").style.display = "none";
+      updateDisplay();
+    }
+    el("btnRestart").addEventListener("click", resetState);
+
+    // --- Admin Clear ---
+    el("btnAdminClear").addEventListener("click", () => {
+      if (sessionStorage.getItem(ADMIN_FLAG) !== "1") { alert("Admin yetkisi yok."); return; }
+      const pin = prompt("PIN tekrar:");
+      if (pin !== ADMIN_PIN) { alert("Yanlış PIN."); return; }
+      localStorage.removeItem("shrimpScores");
+      renderLeaderboard();
+      alert("Leaderboard temizlendi.");
+    });
+
+    // İlk çizim
+    renderLeaderboard();
+    updateDisplay();
+  </script>
+</body>
+</html>
